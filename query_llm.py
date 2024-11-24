@@ -1,6 +1,11 @@
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+try:
+    # Try to use pysqlite3 (for Streamlit Cloud)
+    __import__('pysqlite3')
+    import sys
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+except ImportError:
+    # If pysqlite3 is not available, use built-in sqlite3 (local development)
+    pass
 
 from dotenv import load_dotenv
 import langchain_openai 
@@ -16,13 +21,13 @@ is_debug = os.getenv('DEBUG')
 # Step 2: Set up API keys and initialize models
 # os.environ["OPENAI_API_KEY"] = "your_openai_api_key"  # Set your OpenAI API key
 
-def query_chroma_db(query, n_results=3, embedding_model=None, client=None, chroma_db=None):
+def query_chroma_db(query, project, n_results=3, embedding_model=None, client=None, chroma_db=None):
     if embedding_model is None:
         embedding_model = langchain_openai.OpenAIEmbeddings(model="text-embedding-ada-002")
     if client is None:
         client = chromadb.PersistentClient(path="vector_db")
     if chroma_db is None:
-        chroma_db = langchain_chroma.Chroma(collection_name="nyc_env_regs", embedding_function=embedding_model, persist_directory="vector_db")
+        chroma_db = langchain_chroma.Chroma(collection_name=project, embedding_function=embedding_model, persist_directory="vector_db")
 
     results = chroma_db.similarity_search(query, n_results)
     
@@ -32,13 +37,13 @@ def query_chroma_db(query, n_results=3, embedding_model=None, client=None, chrom
 
     return results
 
-def fetch_vectors(input_query):
+def fetch_vectors(input_query, project):
 
     embedding_model = langchain_openai.OpenAIEmbeddings(model="text-embedding-ada-002")
     client = chromadb.PersistentClient(path="vector_db")
-    chroma_db = langchain_chroma.Chroma(client=client, collection_name="nyc_env_regs", embedding_function=embedding_model)
+    chroma_db = langchain_chroma.Chroma(client=client, collection_name=project, embedding_function=embedding_model)
 
-    vector_db_results = query_chroma_db(input_query,3,embedding_model=embedding_model,client=client,chroma_db=chroma_db)
+    vector_db_results = query_chroma_db(input_query,project,3,embedding_model=embedding_model,client=client,chroma_db=chroma_db)
 
     for i in vector_db_results:
         print(i)
@@ -50,8 +55,8 @@ def fetch_vectors(input_query):
     for i in range(1,len(vector_db_results)):
         text_results += "-----------------------------------\n"
         text_results += "Result #"+str(i)+": \n"
-        text_results += "Source: "+vector_db_results[i-1].get('source', 'Unknown')+"\n"
-        text_results += "Page Number: "+vector_db_results[i-1].get('page', 'Unknown')+"\n"
+        text_results += "Source: "+vector_db_results[i-1].metadata.get('source', 'Unknown')+"\n"
+        text_results += "Page Number: "+str(vector_db_results[i-1].metadata.get('page', 'Unknown'))+"\n"
         text_results += vector_db_results[i-1].page_content
         text_results += "\n\n"
 
@@ -62,10 +67,10 @@ def fetch_vectors(input_query):
     
     return text_results
 
-def query_llm(sys_msg,human_msg,include_rag=True):
+def query_llm(sys_msg,human_msg,project,include_rag=True):
 
     if include_rag: 
-        rag_results = fetch_vectors(human_msg)
+        rag_results = fetch_vectors(human_msg,project)
 
         approx_token_length = len(rag_results) / 4
 

@@ -13,8 +13,25 @@ st.write("Ask questions about NYC environmental regulations and get AI-powered a
 tab1, tab2 = st.tabs(["Ask Questions", "Upload Documents"])
 
 with tab1:
+    # Initialize session state for storing Q&A history if not exists
+    if 'qa_history' not in st.session_state:
+        st.session_state.qa_history = []
+
+    # Initialize session state for storing project if not exists
+    if 'project' not in st.session_state:
+        st.session_state.project = "default"
+
+    st.markdown("""
+        **Tips for asking questions:**
+        - Be specific about the regulations you're asking about
+        - Include relevant context about your project
+        - Ask one question at a time for best results
+    """)
+    #st.markdown("---")
+
     # Create the input text area
     user_question = st.text_area("Enter your question:", height=100)
+        # Add a footer with instructions
 
     # Create a submit button
     if st.button("Get Answer"):
@@ -35,35 +52,56 @@ with tab1:
             
             # Get response from LLM
             with st.spinner('Searching and generating response...'):
-                response = query_llm(system_message, user_question, include_rag=True)
+                response = query_llm(system_message, user_question, include_rag=True, project=st.session_state.project)
                 
-                # Display the response
-                st.write("### Answer:")
+                # Add new Q&A to history
+                st.session_state.qa_history.insert(0, {
+                    "question": user_question,
+                    "answer": response
+                })
+                
+                # Display the current response
+                st.write("### Latest Answer:")
                 st.write(response)
         else:
             st.warning("Please enter a question first.")
 
-    # Add a footer with instructions
-    st.markdown("---")
-    st.markdown("""
-        **Tips for asking questions:**
-        - Be specific about the regulations you're asking about
-        - Include relevant context about your project
-        - Ask one question at a time for best results
-    """)
+
+    # Display Q&A history
+    if st.session_state.qa_history:
+        st.markdown("---")
+        st.markdown("### Previous Questions and Answers")
+        for i, qa in enumerate(st.session_state.qa_history):
+            st.markdown(f"#### Question {len(st.session_state.qa_history) - i}:")
+            st.write(qa["question"])
+            st.markdown("**Answer:**")
+            st.write(qa["answer"])
+            st.markdown("---")
 
 with tab2:
     st.header("Upload PDF Documents")
     st.write("Upload PDF documents to add to the knowledge base.")
     
-    # Display existing PDFs
+    # Create a dropdown for selecting project
+    st.subheader("Select Project")
+    project_options = [f for f in os.listdir("pdf_library") if os.path.isdir(os.path.join("pdf_library", f))] + ["Create New Project"]
+    project = st.selectbox("Select Project", project_options)
+    if project == "Create New Project":
+        new_project = st.text_input("Enter New Project Name")
+        if st.button("Create Project"):
+            os.makedirs(f"pdf_library/{new_project}", exist_ok=True)
+            st.session_state.project = new_project
+    else:
+        st.session_state.project = project
+    
+    # Display existing PDFs for the selected project
     st.subheader("Current PDF Library")
-    pdf_files = [f for f in os.listdir("pdf_library") if f.endswith('.pdf')]
+    pdf_files = [f for f in os.listdir(f"pdf_library/{st.session_state.project}") if f.endswith('.pdf')]
     if pdf_files:
         for pdf in pdf_files:
             st.text(pdf)
     else:
-        st.text("No PDFs currently in library")
+        st.text("No PDFs currently in library for this project")
     
     st.markdown("---")
     
@@ -75,12 +113,12 @@ with tab2:
                 # Save uploaded files temporarily
                 pdf_paths = []
                 for uploaded_file in uploaded_files:
-                    with open(f"pdf_library/{uploaded_file.name}", "wb") as f:
+                    with open(f"pdf_library/{st.session_state.project}/{uploaded_file.name}", "wb") as f:
                         f.write(uploaded_file.getbuffer())
-                    pdf_paths.append(f"pdf_library/{uploaded_file.name}")
+                    pdf_paths.append(f"pdf_library/{st.session_state.project}/{uploaded_file.name}")
                 
-                # Process and store PDFs
+                # Process and store PDFs for the selected project
                 from store_pdfs import process_and_store_pdfs
-                process_and_store_pdfs(pdf_paths)
+                process_and_store_pdfs(pdf_paths, project=st.session_state.project)
                 
-                st.success("Documents processed and added to the knowledge base!")
+                st.success("Documents processed and added to the knowledge base for the selected project!")

@@ -38,7 +38,7 @@ def load_and_chunk_pdf(file_path):
     return chunks
 
 # Step 5: Process a list of PDFs and store in ChromaDB
-def process_and_store_pdfs(pdf_list, embedding_model=None, client=None, chroma_db=None, limit=None):
+def process_and_store_pdfs(pdf_list, project, embedding_model=None, client=None, chroma_db=None, limit=None):
     if embedding_model is None:
         embedding_model = OpenAIEmbeddings(model="text-embedding-ada-002")
     if client is None:
@@ -46,17 +46,17 @@ def process_and_store_pdfs(pdf_list, embedding_model=None, client=None, chroma_d
     
     # Explicitly create the collection after deletion
     try:
-        collection = client.create_collection("nyc_env_regs")
+        collection = client.create_collection(project)
         if is_debug:
-            print("Created new collection 'nyc_env_regs'")
+            print(f"Created new collection '{project}'")
     except ValueError:
-        collection = client.get_collection("nyc_env_regs")
+        collection = client.get_collection(project)
         if is_debug:
-            print("Using existing collection 'nyc_env_regs'")
+            print(f"Using existing collection '{project}'")
 
     chroma_db = Chroma(
         client=client,
-        collection_name="nyc_env_regs", 
+        collection_name=project, 
         embedding_function=embedding_model, 
         persist_directory="vector_db")
 
@@ -108,13 +108,13 @@ def process_and_store_pdfs(pdf_list, embedding_model=None, client=None, chroma_d
 # Example query
 # query_chroma_db("search term or question")
 
-def grab_page_results_from_db(source_path, page_num, embedding_model=None, client=None, chroma_db=None):
+def grab_page_results_from_db(source_path, page_num, project, embedding_model=None, client=None, chroma_db=None):
     if embedding_model is None:
         embedding_model = OpenAIEmbeddings(model="text-embedding-ada-002")
     if client is None:
         client = chromadb.PersistentClient(path="vector_db")
     if chroma_db is None:
-        chroma_db = Chroma(collection_name="nyc_env_regs", embedding_function=embedding_model, persist_directory="vector_db")
+        chroma_db = Chroma(collection_name=project, embedding_function=embedding_model, persist_directory="vector_db")
 
     results = chroma_db.get(where={
                     "$and": [
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     delete_chroma_db("nyc_env_regs", "vector_db")
     
     pdf_list = [f"pdf_library/{f}" for f in os.listdir("pdf_library") if f.endswith('.pdf')]
-    process_and_store_pdfs(pdf_list, embedding_model=embedding_model, client=client, limit=1)
+    process_and_store_pdfs(pdf_list, embedding_model=embedding_model, client=client, limit=1, project="nyc_env_regs")
     
     # Verify collection exists and has documents
     if is_debug:
@@ -181,7 +181,7 @@ if __name__ == "__main__":
     source_path = "pdf_library/der-10.pdf"
     page_num = 1
     
-    results = grab_page_results_from_db(source_path, page_num, embedding_model=embedding_model, client=client, chroma_db=chroma_db)
+    results = grab_page_results_from_db(source_path, page_num, embedding_model=embedding_model, client=client, chroma_db=chroma_db, project="nyc_env_regs")
 
     print(results['documents'][0])
     
