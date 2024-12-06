@@ -13,6 +13,7 @@ import langchain_core
 import langchain_chroma 
 import chromadb
 import os
+from store_pdfs_pg import get_db_connection
 
 load_dotenv()
 
@@ -37,7 +38,40 @@ def query_chroma_db(query, project, n_results=3, embedding_model=None, client=No
 
     return results
 
-def fetch_vectors(input_query, project):
+def query_postgres_db(query, n_results=3):
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+    except Exception as e:
+        if is_debug:
+            print(f"Error connecting to database: {str(e)}")
+        raise e
+
+    # Generate an embedding for the query input
+    embedding_model = langchain_openai.OpenAIEmbeddings(model="text-embedding-ada-002")
+    query_embedding = embedding_model.embed_query(query)
+
+    cur.execute(
+        """
+        SELECT chunk_text, metadata
+            FROM doc_vectors
+            ORDER BY embedding <=> %s::vector
+            LIMIT %s
+        """,
+        (query_embedding, n_results)
+    )
+    results = cur.fetchall()
+
+    if is_debug:
+        print(str(type(results)))
+        print(str(len(results)))
+
+    cur.close()
+    conn.close()
+
+    return results
+
+def fetch_vectors_chroma(input_query, project):
 
     embedding_model = langchain_openai.OpenAIEmbeddings(model="text-embedding-ada-002")
     client = chromadb.PersistentClient(path="vector_db")
@@ -67,10 +101,40 @@ def fetch_vectors(input_query, project):
     
     return text_results
 
-def query_llm(sys_msg,human_msg,project,include_rag=True):
+def fetch_vectors_postgres(input_query, n_results=3):
+
+    # Use query_postgres_db to query the PostgreSQL database
+    vector_db_results = query_postgres_db(input_query, n_results)
+
+    for i in vector_db_results:
+        print(i)
+        print("\n")
+    
+    text_results = ""
+    len_results = 0
+
+    for i in range(len(vector_db_results)):
+        print("Content: "+str(vector_db_results[i]))
+        print("Datatype: "+ str(type(vector_db_results[i])))
+
+        text_results += "-----------------------------------\n"
+        text_results += "Result #"+str(i+1)+": \n"
+        text_results += "Source: "+vector_db_results[i][1].get('source', 'Unknown')+"\n"
+        text_results += "Page Number: "+str(vector_db_results[i][1].get('page', 'Unknown'))+"\n"
+        text_results += vector_db_results[i][0]
+        text_results += "\n\n"
+
+        len_results += len(vector_db_results[i][0])
+
+    if is_debug:
+        print(text_results)
+    
+    return text_results
+
+def query_llm(sys_msg,human_msg,include_rag=True):
 
     if include_rag: 
-        rag_results = fetch_vectors(human_msg,project)
+        rag_results = fetch_vectors_postgres(human_msg,3)
 
         approx_token_length = len(rag_results) / 4
 
@@ -84,7 +148,7 @@ def query_llm(sys_msg,human_msg,project,include_rag=True):
     else:
         full_message = human_msg
     
-    model = langchain_openai.ChatOpenAI(model="gpt-4")
+    model = langchain_openai.ChatOpenAI(model="gpt-4",streaming=True)
     parser = langchain_core.output_parsers.StrOutputParser()
 
     message = [
@@ -92,27 +156,15 @@ def query_llm(sys_msg,human_msg,project,include_rag=True):
         langchain_core.messages.HumanMessage(content=full_message)
     ]
 
-    """
-    response = model.invoke(message)
-    print("API response: ")
-    print(response)
-    print("\n")
+    # Stream responses back from OpenAI
+    response_generator = model.stream(message)
+    print("\n\n///////////////CHATGPT RESPONSE////////////////////\n")
 
-    
-    text_only = parser.invoke(response)
-    print("Message parser: ")
-    print(text_only)
-    """  
-
-    chain = model | parser
-    response = chain.invoke(message)
-    
-    if is_debug:
-        print("\n\n///////////////CHATGPT RESPONSE////////////////////\n")
-        print(response)
-
-    
-    return response
+    for response in response_generator:
+        if response.content:
+            if is_debug:       
+                print(response)
+            yield response.content
 
 if __name__ == "__main__":
 
@@ -134,4 +186,4 @@ if __name__ == "__main__":
     and its application to real estate construction projects. Your responses will be used to help write proposals for environmental site assessments.
     
     """
-    query_llm(system_message_no_rag, input,include_rag=False)
+    query_llm(system_message_rag, input,include_rag=True)
