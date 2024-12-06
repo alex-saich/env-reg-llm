@@ -15,7 +15,6 @@ is_debug = os.getenv('DEBUG')
 if is_debug:
     ALLOW_RESET = os.getenv('ALLOW_RESET')
 
-
 def load_and_chunk_pdf(file_path):
     """
     Loads a PDF file and splits its content into chunks.
