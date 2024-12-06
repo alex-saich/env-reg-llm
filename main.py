@@ -1,5 +1,6 @@
 import streamlit as st
 from query_llm import query_llm
+from pull_db_data import pull_project_names
 import os
 
 # Set up the Streamlit page
@@ -28,7 +29,7 @@ with tab1:
     """)
 
     # Project selection
-    project_options = [f for f in os.listdir("pdf_library") if os.path.isdir(os.path.join("pdf_library", f))]
+    project_options = pull_project_names()
     project = st.selectbox("Select Project", project_options, index=project_options.index(st.session_state.project))
     st.session_state.project = project
 
@@ -45,6 +46,7 @@ with tab1:
     # Submit button
     if submit_button:
         if user_question:
+
             system_message = """
             You are a helpful assistant who is aiding an environmental consultant to interpret New York City and New York State environmental regulation
             and its application to real estate construction projects. Your responses will be used to help write proposals for environmental site assessments.
@@ -81,14 +83,15 @@ with tab1:
     # Display Q&A history
     if st.session_state.qa_history:
         st.markdown("---")
-        st.markdown("### Previous Questions and Answers")
-        for i, qa in enumerate(st.session_state.qa_history):
-            st.markdown(f"#### Question {i + 1}:")
-            st.write(qa["question"])
+        st.subheader("Full Chat History (Most Recent Texts First)")
+        for qa in st.session_state.qa_history:
             st.markdown("**Answer:**")
-            st.write(qa["answer"])
-            st.markdown("---")
+            st.markdown(qa["answer"])
+            st.markdown(":blue[Question:]")
+            st.write(":blue[" + qa["question"] + "]")
+            
 with tab2:
+           
     st.header("Upload PDF Documents")
     st.write("Upload PDF documents to add to the knowledge base.")
     
