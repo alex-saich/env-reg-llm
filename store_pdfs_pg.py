@@ -2,6 +2,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from dotenv import load_dotenv
+import streamlit as st
 import os
 import json
 import psycopg2
@@ -13,14 +14,21 @@ is_debug = os.getenv('DEBUG')
 if is_debug:
     ALLOW_RESET = os.getenv('ALLOW_RESET')
 
-def get_db_connection():
-    return psycopg2.connect(
-        host=os.getenv('DB_HOST'),
-        dbname=os.getenv('DB_NAME'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        sslmode='require'
-    )
+def get_db_connection(connection_type='local'):
+    if connection_type=='local':
+        return psycopg2.connect(
+            host=os.getenv('DB_HOST'),
+            dbname=os.getenv('DB_NAME'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            sslmode='require'
+        )
+    elif connection_type=='streamlit':
+            host=st.secrets["postgres"]["host"],
+            database=st.secrets["postgres"]["database"],
+            user=st.secrets["postgres"]["user"],
+            password=st.secrets["postgres"]["password"],
+            port=st.secrets["postgres"]["port"]
 
 def load_and_chunk_pdf(file_path):
     loader = PyPDFLoader(file_path)
