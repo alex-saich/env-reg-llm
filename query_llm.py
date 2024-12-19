@@ -13,7 +13,7 @@ import langchain_core
 import langchain_chroma 
 import chromadb
 import os
-from store_pdfs_pg import get_db_connection
+from pull_db_data import get_db_connection
 
 load_dotenv()
 

@@ -32,3 +32,6 @@ __pycache__/
 *.env
 .env.local
 .env.*
+
+# Streamlit Cloud credentials
+.streamlit/secrets.toml
