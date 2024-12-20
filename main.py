@@ -134,7 +134,7 @@ with tab2:
     
     st.markdown("---")
     
-    uploaded_files = st.file_uploader("Choose PDF files", type="pdf", accept_multiple_files=True)
+    uploaded_files = st.file_uploader("Choose PDF files", type="pdf", accept_multiple_files=False)
     
     if uploaded_files:
         if st.button("Process Documents"):

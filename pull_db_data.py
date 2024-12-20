@@ -6,6 +6,14 @@ try:
 except ImportError:
     # If pysqlite3 is not available, use built-in sqlite3 (local development)
     pass
+<<<<<<< HEAD
+=======
+
+import streamlit as st
+import os
+import psycopg2
+
+>>>>>>> dbc1f2d (removed projects functionality until we can sort out the bugginess)
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -77,4 +85,24 @@ class DBManager:
         pdfs = [row[0] for row in cur.fetchall()]
         conn.close()
         return pdfs
+
+def insert_project_name(project_name):
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("INSERT INTO projects (project_name) VALUES (%s)", (project_name,))
+        conn.commit()
+        conn.close()
+        return "Project name inserted successfully."
+    except Exception as e:
+        return f"Failed to insert project name: {e}"
+    
+def pull_project_pdfs(project_name):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT document_name FROM documents WHERE project_name = %s", (project_name,))
+    pdfs = [row[0] for row in cur.fetchall()]
+    conn.close()
+    return pdfs
+
 
