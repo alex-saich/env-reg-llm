@@ -1,6 +1,6 @@
 import streamlit as st
 from query_llm import query_llm
-from pull_db_data import pull_project_names
+from pull_db_data import pull_project_names, insert_project_name, pull_project_pdfs
 import os
 
 # Set up the Streamlit page
@@ -30,10 +30,16 @@ with tab1:
 
     # Project selection
     project_options = pull_project_names()
-    project = st.selectbox("Select Project", project_options, index=project_options.index(st.session_state.project))
-    st.session_state.project = project
 
-      # Question input
+    
+    # project = st.selectbox("Select Project", project_options)  # Default to first option if not found
+    # st.session_state.project = project  # Update session state to the new selection
+    
+    
+    project = project_options[0]
+    # breakpoint()
+
+    # Question input
     user_question = st.text_area("Enter your question:", height=100)
 
     # Submit button
@@ -65,7 +71,7 @@ with tab1:
                 full_response = ""
 
                 #with st.spinner('Searching and generating response...'):
-                for chunk in query_llm(sys_msg=system_message, human_msg=user_question):
+                for chunk in query_llm(sys_msg=system_message, human_msg=user_question, project_name=st.session_state.project):
                     full_response += chunk
                     response_placeholder.markdown(full_response + "▌")
                 
@@ -96,20 +102,31 @@ with tab2:
     st.write("Upload PDF documents to add to the knowledge base.")
     
     # Create a dropdown for selecting project
-    st.subheader("Select Project")
-    project_options = [f for f in os.listdir("pdf_library") if os.path.isdir(os.path.join("pdf_library", f))] + ["Create New Project"]
-    project = st.selectbox("Select Project", project_options)
-    if project == "Create New Project":
-        new_project = st.text_input("Enter New Project Name")
-        if st.button("Create Project"):
-            os.makedirs(f"pdf_library/{new_project}", exist_ok=True)
-            st.session_state.project = new_project
-    else:
-        st.session_state.project = project
+    
+    # st.subheader("Select Project")
+    # project_options = pull_project_names() + ["Create New Project"]
+    
+    # # Use a selectbox with a callback to update session state
+    # project = st.selectbox("Select Project", project_options, index=project_options.index(st.session_state.project) if 'project' in st.session_state else 0)
+    
+    # # Update session state directly after selection
+    # st.session_state.project = project  # Ensure session state is updated here
+
+    # if project == "Create New Project":
+    #     new_project = st.text_input("Enter New Project Name")
+    #     if st.button("Create Project"):
+    #         if new_project not in project_options:
+    #             message = insert_project_name(new_project)
+    #             print(message)
+    #             if "successfully" in message:
+    #                 st.session_state.project = new_project
+    #         else:
+    #             st.warning("Project name already exists. Please choose a different name.")
+    
     
     # Display existing PDFs for the selected project
     st.subheader("Current PDF Library")
-    pdf_files = [f for f in os.listdir(f"pdf_library/{st.session_state.project}") if f.endswith('.pdf')]
+    pdf_files = pull_project_pdfs(project)
     if pdf_files:
         for pdf in pdf_files:
             st.text(pdf)
@@ -118,20 +135,27 @@ with tab2:
     
     st.markdown("---")
     
-    uploaded_files = st.file_uploader("Choose PDF files", type="pdf", accept_multiple_files=True)
+    uploaded_files = st.file_uploader("Choose PDF files", type="pdf", accept_multiple_files=False)
     
     if uploaded_files:
         if st.button("Process Documents"):
             with st.spinner('Processing documents...'):
                 # Save uploaded files temporarily
                 pdf_paths = []
+                # Ensure the directory exists
+                project_dir = f"pdf_library/{st.session_state.project}"
+                os.makedirs(project_dir, exist_ok=True)  # Create the directory if it doesn't exist
+                
                 for uploaded_file in uploaded_files:
-                    with open(f"pdf_library/{st.session_state.project}/{uploaded_file.name}", "wb") as f:
+                    with open(f"{project_dir}/{uploaded_file.name}", "wb") as f:
                         f.write(uploaded_file.getbuffer())
-                    pdf_paths.append(f"pdf_library/{st.session_state.project}/{uploaded_file.name}")
+                    pdf_paths.append(f"{project_dir}/{uploaded_file.name}")
                 
                 # Process and store PDFs for the selected project
                 from store_pdfs_pg import process_and_store_pdfs
-                process_and_store_pdfs(pdf_paths, project=st.session_state.project)
+                result = process_and_store_pdfs(pdf_paths, project=st.session_state.project)
                 
-                st.success("Documents processed and added to the knowledge base for the selected project!")
+                if "successfully" in result:
+                    st.success(result)
+                else:
+                    st.error(result)

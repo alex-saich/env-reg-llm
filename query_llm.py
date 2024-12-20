@@ -38,7 +38,7 @@ def query_chroma_db(query, project, n_results=3, embedding_model=None, client=No
 
     return results
 
-def query_postgres_db(query, n_results=3):
+def query_postgres_db(query, project_name, n_results=3):
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -55,10 +55,11 @@ def query_postgres_db(query, n_results=3):
         """
         SELECT chunk_text, metadata
             FROM doc_vectors
+            WHERE project_name = %s
             ORDER BY embedding <=> %s::vector
             LIMIT %s
         """,
-        (query_embedding, n_results)
+        (project_name, query_embedding, n_results)
     )
     results = cur.fetchall()
 
@@ -101,10 +102,10 @@ def fetch_vectors_chroma(input_query, project):
     
     return text_results
 
-def fetch_vectors_postgres(input_query, n_results=3):
+def fetch_vectors_postgres(input_query, project_name, n_results=3):
 
     # Use query_postgres_db to query the PostgreSQL database
-    vector_db_results = query_postgres_db(input_query, n_results)
+    vector_db_results = query_postgres_db(input_query, project_name, n_results)
 
     for i in vector_db_results:
         print(i)
@@ -131,10 +132,10 @@ def fetch_vectors_postgres(input_query, n_results=3):
     
     return text_results
 
-def query_llm(sys_msg,human_msg,include_rag=True):
+def query_llm(sys_msg,human_msg,project_name,include_rag=True):
 
     if include_rag: 
-        rag_results = fetch_vectors_postgres(human_msg,3)
+        rag_results = fetch_vectors_postgres(human_msg,project_name,5)
 
         approx_token_length = len(rag_results) / 4
 
