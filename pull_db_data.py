@@ -13,7 +13,7 @@ import psycopg2
 
 
 def get_db_connection(connection_type='local'):
-    if connection_type=='local':
+    if connection_type == 'local':
         return psycopg2.connect(
             host=os.getenv('DB_HOST'),
             dbname=os.getenv('DB_NAME'),
@@ -21,12 +21,14 @@ def get_db_connection(connection_type='local'):
             password=os.getenv('DB_PASSWORD'),
             sslmode='require'
         )
-    elif connection_type=='streamlit':
+    elif connection_type == 'streamlit':
+        return psycopg2.connect(
             host=st.secrets["postgres"]["host"],
-            database=st.secrets["postgres"]["database"],
+            dbname=st.secrets["postgres"]["database"],
             user=st.secrets["postgres"]["user"],
             password=st.secrets["postgres"]["password"],
             port=st.secrets["postgres"]["port"]
+        )
 
 def pull_project_names():
     conn = get_db_connection()
