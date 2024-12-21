@@ -1,6 +1,6 @@
 import streamlit as st
-from query_llm import query_llm
-from pull_db_data import pull_project_names, insert_project_name, pull_project_pdfs
+from query_llm import LLMQueryer
+from pull_db_data import DBManager
 import os
 
 # Set up the Streamlit page
@@ -29,12 +29,10 @@ with tab1:
     """)
 
     # Project selection
-    project_options = pull_project_names()
-
+    project_options = DBManager(connection_type='streamlit').pull_project_names()
     
     # project = st.selectbox("Select Project", project_options)  # Default to first option if not found
     # st.session_state.project = project  # Update session state to the new selection
-    
     
     project = project_options[0]
     # breakpoint()
@@ -70,8 +68,9 @@ with tab1:
                 response_placeholder.empty()
                 full_response = ""
 
+                llm_queryer = LLMQueryer(project_name=st.session_state.project,connection_type='streamlit')
                 #with st.spinner('Searching and generating response...'):
-                for chunk in query_llm(sys_msg=system_message, human_msg=user_question, project_name=st.session_state.project):
+                for chunk in llm_queryer.query_llm(sys_msg=system_message, human_msg=user_question):
                     full_response += chunk
                     response_placeholder.markdown(full_response + "▌")
                 
@@ -126,7 +125,7 @@ with tab2:
     
     # Display existing PDFs for the selected project
     st.subheader("Current PDF Library")
-    pdf_files = pull_project_pdfs(project)
+    pdf_files = DBManager(connection_type='streamlit').pull_project_pdfs(project)
     if pdf_files:
         for pdf in pdf_files:
             st.text(pdf)
