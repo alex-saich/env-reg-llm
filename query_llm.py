@@ -27,8 +27,12 @@ class LLMQueryer:
             load_dotenv()
             openai_api_key = os.getenv('OPENAI_API_KEY')
         else:
-            # Use Streamlit secrets for cloud deployment
-            openai_api_key = st.secrets["openai"]["openai_api_key"]
+            try:
+                self.api_key = st.secrets["openai"]["openai_api_key"]
+                print(f"Retrieved API key from secrets: {self.api_key[:8]}...")  # Only print first 8 chars for security
+            except Exception as e:
+                print(f"Error accessing secrets: {str(e)}")
+                raise
         
         # Initialize OpenAI client with appropriate API key
         os.environ["OPENAI_API_KEY"] = openai_api_key
