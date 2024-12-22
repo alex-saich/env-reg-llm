@@ -134,7 +134,7 @@ with tab2:
     
     st.markdown("---")
     
-    uploaded_files = st.file_uploader("Choose PDF files", type="pdf", accept_multiple_files=False)
+    uploaded_files = st.file_uploader("Choose PDF files", type="pdf", accept_multiple_files=True)
     
     if uploaded_files:
         if st.button("Process Documents"):
@@ -152,7 +152,7 @@ with tab2:
                 
                 # Process and store PDFs for the selected project
                 from store_pdfs_pg import process_and_store_pdfs
-                result = process_and_store_pdfs(pdf_paths, project=st.session_state.project)
+                result = process_and_store_pdfs(pdf_paths, connection_type='streamlit',project=st.session_state.project)
                 
                 if "successfully" in result:
                     st.success(result)

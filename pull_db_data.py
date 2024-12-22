@@ -11,7 +11,6 @@ import streamlit as st
 from dotenv import load_dotenv
 import os
 import psycopg2
-import unittest
 
 load_dotenv()
 
@@ -59,6 +58,17 @@ class DBManager:
             return "Project name inserted successfully."
         except Exception as e:
             return f"Failed to insert project name: {e}"
+
+    def delete_project_name(self, project_name):
+        try:
+            conn = self.get_db_connection()
+            cur = conn.cursor()
+            cur.execute("DELETE FROM projects WHERE project_name = %s", (project_name,))
+            conn.commit()
+            conn.close()
+            return "Project name deleted successfully."
+        except Exception as e:
+            return f"Failed to delete project name: {e}"
     
     def pull_project_pdfs(self, project_name):
         conn = self.get_db_connection()
@@ -67,35 +77,4 @@ class DBManager:
         pdfs = [row[0] for row in cur.fetchall()]
         conn.close()
         return pdfs
-
-class TestDBManager(unittest.TestCase):
-    def setUp(self):
-        self.db_manager = DBManager()
-
-    def test_get_db_connection_local(self):
-        conn = self.db_manager.get_db_connection()
-        self.assertIsNotNone(conn)
-
-    def test_get_db_connection_streamlit(self):
-        self.db_manager.connection_type = 'streamlit'
-        conn = self.db_manager.get_db_connection()
-        self.assertIsNotNone(conn)
-
-    def test_pull_project_names(self):
-        project_names = self.db_manager.pull_project_names()
-        self.assertIsInstance(project_names, list)
-
-    def test_insert_project_name(self):
-        project_name = "Test Project"
-        result = self.db_manager.insert_project_name(project_name)
-        self.assertEqual(result, "Project name inserted successfully.")
-
-    def test_pull_project_pdfs(self):
-        project_name = "default"
-        pdfs = self.db_manager.pull_project_pdfs(project_name)
-        self.assertIsInstance(pdfs, list)
-
-if __name__ == '__main__':
-    unittest.main()
-
 

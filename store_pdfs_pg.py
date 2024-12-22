@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import streamlit as st
 import os
 import json
-from pull_db_data import get_db_connection
+from pull_db_data import DBManager
 
 
 load_dotenv()
@@ -43,7 +43,7 @@ def load_and_chunk_pdf(file_path):
         print(str(chunks[0])+"\n")
     return chunks
 
-def process_and_store_pdfs(pdf_list, project, embedding_model=None, limit=None):
+def process_and_store_pdfs(pdf_list, connection_type, project, embedding_model=None, limit=None):
     """
     Processes and stores PDFs in the database with their embeddings.
     
@@ -61,7 +61,7 @@ def process_and_store_pdfs(pdf_list, project, embedding_model=None, limit=None):
     
     # Establish a connection to the database
     try:
-        conn = get_db_connection()
+        conn = DBManager(connection_type='streamlit').get_db_connection()
         cur = conn.cursor()
     except Exception as e:
         return f"Error connecting to database: {str(e)}"
@@ -148,7 +148,7 @@ def grab_page_results_from_db(source, page_num):
     """
     # Establish a connection to the database
     try:
-        conn = get_db_connection()
+        conn = DBManager(connection_type='streamlit').get_db_connection()
         cur = conn.cursor()
     except Exception as e:
         if is_debug:
@@ -178,7 +178,7 @@ def delete_from_postgres_db(source, db_config=None):
     
     # Establish a connection to the database
     try:
-        conn = get_db_connection()
+        conn = DBManager(connection_type='streamlit').get_db_connection()
         cur = conn.cursor()
     except Exception as e:
         if is_debug:
@@ -205,7 +205,7 @@ if __name__ == "__main__":
     
     # Establish a connection to the database
     try:
-        conn = get_db_connection()
+        conn = DBManager(connection_type='streamlit').get_db_connection()
         cur = conn.cursor()
     except Exception as e:
         if is_debug:
