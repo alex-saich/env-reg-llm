@@ -32,10 +32,14 @@ class LLMQueryer:
         
         # Initialize OpenAI client with appropriate API key
         os.environ["OPENAI_API_KEY"] = openai_api_key
-        self.embedding_model = embedding_model if embedding_model else langchain_openai.OpenAIEmbeddings(
-            model="text-embedding-ada-002",
-            openai_api_key=openai_api_key
-        )
+
+        if embedding_model:
+            self.embedding_model = embedding_model
+        else:
+            self.embedding_model = langchain_openai.OpenAIEmbeddings(
+                model="text-embedding-ada-002"
+            )
+
 
     def set_project_name(self, new_project_name):
         self.project_name = new_project_name
@@ -165,13 +169,11 @@ class LLMQueryer:
         else:
             full_message = human_msg
         
-        if self.connection_type == 'local':
-            api_key = os.getenv('OPENAI_API_KEY')
-        else:
-            api_key = st.secrets["openai"]["openai_api_key"]
+        model = langchain_openai.ChatOpenAI(
+            model="gpt-4",
+            streaming=True
+        )
 
-
-        model = langchain_openai.ChatOpenAI(model="gpt-4", streaming=True, openai_api_key=api_key)
         parser = langchain_core.output_parsers.StrOutputParser()
 
         message = [
