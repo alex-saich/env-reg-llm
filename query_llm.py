@@ -13,24 +13,31 @@ import langchain_core
 import langchain_chroma 
 import chromadb
 import os
+import streamlit as st
 from pull_db_data import DBManager
-
-load_dotenv()
-
-is_debug = os.getenv('DEBUG')
-
-# Step 2: Set up API keys and initialize models
-# os.environ["OPENAI_API_KEY"] = "your_openai_api_key"  # Set your OpenAI API key
 
 class LLMQueryer:
     def __init__(self, project_name, connection_type='local', embedding_model=None):
         self.is_debug = os.getenv('DEBUG')
         self.project_name = project_name
-        self.embedding_model = embedding_model if embedding_model else langchain_openai.OpenAIEmbeddings(model="text-embedding-ada-002")
-        self.connection_type = connection_type 
+        self.connection_type = connection_type
+        
+        # Set up OpenAI API key based on environment
+        if connection_type == 'local':
+            load_dotenv()
+            openai_api_key = os.getenv('OPENAI_API_KEY')
+        else:
+            # Use Streamlit secrets for cloud deployment
+            openai_api_key = st.secrets["openai"]["openai_api_key"]
+        
+        # Initialize OpenAI client with appropriate API key
+        os.environ["OPENAI_API_KEY"] = openai_api_key
+        self.embedding_model = embedding_model if embedding_model else langchain_openai.OpenAIEmbeddings(
+            model="text-embedding-ada-002",
+            openai_api_key=openai_api_key
+        )
 
     def set_project_name(self, new_project_name):
-        # You can add validation logic here if needed
         self.project_name = new_project_name
     
     def query_chroma_db(self, query, n_results=3, client=None, chroma_db=None):
@@ -140,9 +147,9 @@ class LLMQueryer:
         return text_results
 
     def query_llm(self, sys_msg, human_msg, include_rag=True):
-        breakpoint()
+        # breakpoint()
 
-        print("what")
+        # print("what")
         if include_rag: 
             rag_results = self.fetch_vectors_postgres(self.connection_type, human_msg, 5)
 
