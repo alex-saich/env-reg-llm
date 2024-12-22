@@ -27,11 +27,11 @@ class LLMQueryer:
         # Set up OpenAI API key based on environment
         if connection_type == 'local':
             load_dotenv()
-            openai_api_key = os.getenv('OPENAI_API_KEY')
+            self.openai_api_key = os.getenv('OPENAI_API_KEY')
         else:
             try:
-                self.api_key = st.secrets["openai"]["openai_api_key"]
-                print(f"Retrieved API key from secrets: {self.api_key[:8]}...")  # Only print first 8 chars for security
+                self.openai_api_key = st.secrets["openai"]["openai_api_key"]
+                print(f"Retrieved API key from secrets: {self.openai_api_key[:8]}...")  # Only print first 8 chars for security
             except Exception as e:
                 print(f"Error accessing secrets: {str(e)}")
                 raise
@@ -40,7 +40,7 @@ class LLMQueryer:
             raise ValueError("OpenAI API key not found in environment variables or secrets")
         
         # Initialize OpenAI client with appropriate API key
-        os.environ["OPENAI_API_KEY"] = openai_api_key
+        os.environ["OPENAI_API_KEY"] = self.openai_api_key
 
         # Initialize embedding model
         if embedding_model:
