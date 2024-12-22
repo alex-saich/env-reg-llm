@@ -36,9 +36,11 @@ class LLMQueryer:
         if embedding_model:
             self.embedding_model = embedding_model
         else:
-            self.embedding_model = langchain_openai.OpenAIEmbeddings(
-                model="text-embedding-ada-002"
-            )
+            try:
+                self.embedding_model = langchain_openai.OpenAIEmbeddings()
+            except Exception as e:
+                print(f"Error initializing embedding model: {str(e)}")
+                raise
 
 
     def set_project_name(self, new_project_name):
@@ -169,27 +171,28 @@ class LLMQueryer:
         else:
             full_message = human_msg
         
-        model = langchain_openai.ChatOpenAI(
-            model="gpt-4",
-            streaming=True
-        )
+        try:
+            # Initialize ChatOpenAI with minimal configuration
+            model = langchain_openai.ChatOpenAI()
+            
+            message = [
+                langchain_core.messages.SystemMessage(content=sys_msg),
+                langchain_core.messages.HumanMessage(content=full_message)
+            ]
 
-        parser = langchain_core.output_parsers.StrOutputParser()
+            # Stream responses back from OpenAI
+            response_generator = model.stream(message)
+            print("\n\n///////////////CHATGPT RESPONSE////////////////////\n")
 
-        message = [
-            langchain_core.messages.SystemMessage(content=sys_msg),
-            langchain_core.messages.HumanMessage(content=full_message)
-        ]
-
-        # Stream responses back from OpenAI
-        response_generator = model.stream(message)
-        print("\n\n///////////////CHATGPT RESPONSE////////////////////\n")
-
-        for response in response_generator:
-            if response.content:
-                if self.is_debug:       
-                    print(response)
-                yield response.content
+            for response in response_generator:
+                if response.content:
+                    if self.is_debug:       
+                        print(response)
+                    yield response.content
+                    
+        except Exception as e:
+            print(f"Error in query_llm: {str(e)}")
+            raise
         
 if __name__ == "__main__":
 
