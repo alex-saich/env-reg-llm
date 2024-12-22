@@ -165,7 +165,13 @@ class LLMQueryer:
         else:
             full_message = human_msg
         
-        model = langchain_openai.ChatOpenAI(model="gpt-4", streaming=True)
+        if self.connection_type == 'local':
+            api_key = os.getenv('OPENAI_API_KEY')
+        else:
+            api_key = st.secrets["openai"]["openai_api_key"]
+
+
+        model = langchain_openai.ChatOpenAI(model="gpt-4", streaming=True, openai_api_key=api_key)
         parser = langchain_core.output_parsers.StrOutputParser()
 
         message = [
