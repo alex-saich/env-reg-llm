@@ -21,6 +21,8 @@ class LLMQueryer:
         self.is_debug = os.getenv('DEBUG')
         self.project_name = project_name
         self.connection_type = connection_type
+
+        self.openai_api_key = None
         
         # Set up OpenAI API key based on environment
         if connection_type == 'local':
@@ -34,14 +36,21 @@ class LLMQueryer:
                 print(f"Error accessing secrets: {str(e)}")
                 raise
         
+        if not self.openai_api_key:
+            raise ValueError("OpenAI API key not found in environment variables or secrets")
+        
         # Initialize OpenAI client with appropriate API key
         os.environ["OPENAI_API_KEY"] = openai_api_key
 
+        # Initialize embedding model
         if embedding_model:
             self.embedding_model = embedding_model
         else:
             try:
-                self.embedding_model = langchain_openai.OpenAIEmbeddings()
+                self.embedding_model = langchain_openai.OpenAIEmbeddings(
+                    openai_api_key=self.openai_api_key,
+                    model="text-embedding-ada-002"
+                )
             except Exception as e:
                 print(f"Error initializing embedding model: {str(e)}")
                 raise
@@ -176,27 +185,32 @@ class LLMQueryer:
             full_message = human_msg
         
         try:
-            # Initialize ChatOpenAI with minimal configuration
-            model = langchain_openai.ChatOpenAI()
+            # Initialize ChatOpenAI with the instance API key
+            model = langchain_openai.ChatOpenAI(
+                openai_api_key=self.openai_api_key,
+                model_name="gpt-4",
+                streaming=True,
+                #temperature=0.7
+            )
+        except Exception as e:
+            print(f"Error in model init: {str(e)}")
+            raise
             
-            message = [
+        message = [
                 langchain_core.messages.SystemMessage(content=sys_msg),
                 langchain_core.messages.HumanMessage(content=full_message)
             ]
 
             # Stream responses back from OpenAI
-            response_generator = model.stream(message)
-            print("\n\n///////////////CHATGPT RESPONSE////////////////////\n")
+        response_generator = model.stream(message)
+        print("\n\n///////////////CHATGPT RESPONSE////////////////////\n")
 
-            for response in response_generator:
-                if response.content:
-                    if self.is_debug:       
-                        print(response)
-                    yield response.content
+        for response in response_generator:
+            if response.content:
+                if self.is_debug:       
+                    print(response)
+                yield response.content
                     
-        except Exception as e:
-            print(f"Error in query_llm: {str(e)}")
-            raise
         
 if __name__ == "__main__":
 
