@@ -30,7 +30,7 @@ class LLMQueryer:
             self.openai_api_key = os.getenv('OPENAI_API_KEY')
         else:
             try:
-                self.openai_api_key = st.secrets["openai"]["openai_api_key"]
+                self.openai_api_key = st.secrets['openai']['openai_api_key']
                 print(f"Retrieved API key from secrets: {self.openai_api_key[:8]}...")  # Only print first 8 chars for security
             except Exception as e:
                 print(f"Error accessing secrets: {str(e)}")
