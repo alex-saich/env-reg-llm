@@ -210,8 +210,7 @@ class LLMQueryer:
                 if self.is_debug:       
                     print(response)
                 yield response.content
-                    
-        
+
 if __name__ == "__main__":
 
     input = "Please tell me about how I should organize my site into Areas of Concern."

@@ -1,5 +1,6 @@
 import unittest
 from pull_db_data import DBManager
+from query_llm import LLMQueryer
 
 class TestDBManager(unittest.TestCase):
     def setUp(self):
@@ -38,6 +39,48 @@ class TestDBManager(unittest.TestCase):
         # Verify that the project name has been deleted
         project_names = self.db_manager.pull_project_names()
         self.assertNotIn(project_name, project_names)
+
+class TestLLMQueryer(unittest.TestCase):
+    def setUp(self):
+        self.llm_queryer = LLMQueryer(project_name='default')
+
+    def test_set_project_name(self):
+        self.llm_queryer.set_project_name("new_project_name")
+        self.assertEqual(self.llm_queryer.project_name, "new_project_name")
+
+    def test_query_chroma_db(self):
+        query = "test query"
+        n_results = 3
+        results = self.llm_queryer.query_chroma_db(query, n_results)
+        self.assertIsInstance(results, list)
+
+    def test_query_postgres_db(self):
+        connection_type = "local"
+        query = "test query"
+        n_results = 3
+        results = self.llm_queryer.query_postgres_db(connection_type, query, n_results)
+        self.assertIsInstance(results, list)
+
+    def test_fetch_vectors_chroma(self):
+        input_query = "test query"
+        n_results = 3
+        results = self.llm_queryer.fetch_vectors_chroma(input_query, n_results)
+        self.assertIsInstance(results, str)
+
+    def test_fetch_vectors_postgres(self):
+        connection_type = "local"
+        input_query = "test query"
+        n_results = 3
+        results = self.llm_queryer.fetch_vectors_postgres(connection_type, input_query, n_results)
+        self.assertIsInstance(results, str)
+
+    def test_query_llm(self):
+        sys_msg = "test system message"
+        human_msg = "test human message"
+        include_rag = True
+        results = self.llm_queryer.query_llm(sys_msg, human_msg, include_rag)
+        results = list(results)
+        self.assertIsInstance(results, list)
 
 if __name__ == '__main__':
     unittest.main()
