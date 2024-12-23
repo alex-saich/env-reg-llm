@@ -30,7 +30,7 @@ class LLMQueryer:
         self.openai_api_key = None
         
         # Set up OpenAI API key based on environment
-        if os.environ["OPENAI_API_KEY"] is None:
+        if "OPENAI_API_KEY" not in os.environ:
             if connection_type == 'local':
                 load_dotenv()
                 self.openai_api_key = os.getenv('OPENAI_API_KEY')
