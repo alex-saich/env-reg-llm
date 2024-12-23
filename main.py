@@ -9,7 +9,7 @@ os.environ["DB_HOST"] = st.secrets["postgres"]["host"]
 os.environ["DB_NAME"] = st.secrets["postgres"]["database"]
 os.environ["DB_USER"] = st.secrets["postgres"]["user"]
 os.environ["DB_PASSWORD"] = st.secrets["postgres"]["password"]
-os.environ["OPENAI_API_KEY"] = st.secrets["open_ai"]["openai_api_key"]
+os.environ["OPENAI_API_KEY"] = st.secrets["openai"]["api_key"]
 
 # Set up the Streamlit page
 st.set_page_config(page_title="NYC Environmental Regulations Assistant", page_icon="🌱")
