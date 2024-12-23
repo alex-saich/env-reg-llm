@@ -22,6 +22,11 @@ class LLMQueryer:
         self.project_name = project_name
         self.connection_type = connection_type
 
+        try:
+            db_test = DBManager(connection_type='streamlit').get_db_connection()
+        except Exception as e:
+            print(f"Error connecting to Postgres: {str(e)}")
+
         self.openai_api_key = None
         
         # Set up OpenAI API key based on environment
