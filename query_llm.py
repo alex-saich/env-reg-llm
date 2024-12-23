@@ -48,7 +48,7 @@ class LLMQueryer:
         else:
             try:
                 self.embedding_model = langchain_openai.OpenAIEmbeddings(
-                    openai_api_key=self.openai_api_key,
+                    # openai_api_key=self.openai_api_key,
                     model="text-embedding-ada-002"
                 )
             except Exception as e:
