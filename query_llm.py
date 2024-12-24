@@ -12,6 +12,7 @@ import langchain_openai
 import langchain_core
 import langchain_chroma 
 import chromadb
+from openai import OpenAI
 import os
 import streamlit as st
 from pull_db_data import DBManager
@@ -34,13 +35,15 @@ class LLMQueryer:
             if connection_type == 'local':
                 load_dotenv()
                 self.openai_api_key = os.getenv('OPENAI_API_KEY')
-            else:
+            elif connection_type == 'streamlit':
                 try:
                     self.openai_api_key = st.secrets['openai']['api_key']
                     print(f"Retrieved API key from secrets: {self.openai_api_key[:8]}...")  # Only print first 8 chars for security
                 except Exception as e:
                     print(f"Error accessing secrets: {str(e)}")
                     raise
+            else:
+                raise ValueError("Invalid connection_type value passed to LLMQueryer.")
             
             if not self.openai_api_key:
                 raise ValueError("OpenAI API key not found in environment variables or secrets")
@@ -73,9 +76,9 @@ class LLMQueryer:
 
         results = chroma_db.similarity_search(query, n_results)
         
-        if self.is_debug:
-            print(str(type(results)))
-            print(str(len(results)))
+        # if self.is_debug:
+        #     print(str(type(results)))
+        #     print(str(len(results)))
 
         return results
 
@@ -103,9 +106,9 @@ class LLMQueryer:
         )
         results = cur.fetchall()
 
-        if self.is_debug:
-            print(str(type(results)))
-            print(str(len(results)))
+        # if self.is_debug:
+        #     print(str(type(results)))
+        #     print(str(len(results)))
 
         cur.close()
         conn.close()
@@ -119,9 +122,9 @@ class LLMQueryer:
 
         vector_db_results = self.query_chroma_db(input_query, n_results, client=client, chroma_db=chroma_db)
 
-        for i in vector_db_results:
-            print(i)
-            print("\n")
+        # for i in vector_db_results:
+        #     print(i)
+        #     print("\n")
         
         text_results = ""
         len_results = 0
@@ -136,8 +139,8 @@ class LLMQueryer:
 
             len_results += len(vector_db_results[i-1].page_content)
 
-        if self.is_debug:
-            print(text_results)
+        # if self.is_debug:
+        #     print(text_results)
         
         return text_results
 
@@ -146,16 +149,16 @@ class LLMQueryer:
         # Use query_postgres_db to query the PostgreSQL database
         vector_db_results = self.query_postgres_db(connection_type, input_query, n_results)
 
-        for i in vector_db_results:
-            print(i)
-            print("\n")
+        # for i in vector_db_results:
+        #     print(i)
+        #     print("\n")
         
         text_results = ""
         len_results = 0
 
         for i in range(len(vector_db_results)):
-            print("Content: "+str(vector_db_results[i]))
-            print("Datatype: "+ str(type(vector_db_results[i])))
+            # print("Content: "+str(vector_db_results[i]))
+            # print("Datatype: "+ str(type(vector_db_results[i])))
 
             text_results += "-----------------------------------\n"
             text_results += "Result #"+str(i+1)+": \n"
@@ -166,17 +169,27 @@ class LLMQueryer:
 
             len_results += len(vector_db_results[i][0])
 
-        if self.is_debug:
-            print(text_results)
+        # if self.is_debug:
+        #     print(text_results)
         
         return text_results
 
     def query_llm(self, sys_msg, human_msg, include_rag=True):
-        # breakpoint()
 
-        # print("what")
         if include_rag: 
-            rag_results = self.fetch_vectors_postgres(self.connection_type, human_msg, 5)
+
+            rag_text = ""
+            i=1
+            for msg in human_msg:
+                if msg["role"] == "assistant":
+                    rag_text+=f"Assistant response #{i}:\n"
+                    rag_text+=str(msg["content"][0]["text"])+"\n\n"
+                elif msg["role"] == "user":
+                    rag_text+=f"User Question #{i}:\n"
+                    rag_text+=str(msg["content"][0]["text"])+"\n\n"
+                i+=1
+                        
+            rag_results = self.fetch_vectors_postgres(self.connection_type, rag_text, 5)
 
             approx_token_length = len(rag_results) / 4
 
@@ -186,36 +199,34 @@ class LLMQueryer:
 
                 return
         
-            full_message = "User question: "+human_msg+"\n\nSupporting materials: \n"+rag_results
-        else:
-            full_message = human_msg
+            human_msg[0]["content"][0]["text"] += "\n\nSupporting materials from database: \n" + rag_results
+
+        message_list = []
+        message_list.append({"role": "developer", "content": [{"type": "text", "text": sys_msg}]})
+        message_list.extend(human_msg)
+
         
         try:
-            # Initialize ChatOpenAI with the instance API key
-            model = langchain_openai.ChatOpenAI(
-                openai_api_key=self.openai_api_key,
-                model_name="gpt-4",
-                streaming=True,
-                #temperature=0.7
+            # Initialize OpenAI with the instance API key
+            model = OpenAI().chat.completions.create(
+                model="gpt-4",
+                messages=message_list,
+                temperature=0.7,
+                max_tokens=150,
+                top_p=1.0,
+                frequency_penalty=0.0,
+                presence_penalty=0.0,
+                stream=True
             )
         except Exception as e:
             print(f"Error in model init: {str(e)}")
             raise
             
-        message = [
-                langchain_core.messages.SystemMessage(content=sys_msg),
-                langchain_core.messages.HumanMessage(content=full_message)
-            ]
+        for chunk in model:
+            if chunk.choices[0].delta.content is not None:
+                # print(chunk.choices[0].delta.content, end="")
+                yield chunk.choices[0].delta.content
 
-            # Stream responses back from OpenAI
-        response_generator = model.stream(message)
-        print("\n\n///////////////CHATGPT RESPONSE////////////////////\n")
-
-        for response in response_generator:
-            if response.content:
-                if self.is_debug:       
-                    print(response)
-                yield response.content
 
 if __name__ == "__main__":
 

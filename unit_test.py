@@ -2,6 +2,21 @@ import unittest
 from pull_db_data import DBManager
 from query_llm import LLMQueryer
 
+test_message = [
+    {
+      "role": "user",
+      "content": [{ "type": "text", "text": "knock knock." }]
+    },
+    {
+      "role": "assistant",
+      "content": [{ "type": "text", "text": "Who's there?" }]
+    },
+    {
+      "role": "user",
+      "content": [{ "type": "text", "text": "Orange." }]
+    }
+  ]
+
 class TestDBManager(unittest.TestCase):
     def setUp(self):
         self.db_manager = DBManager()
@@ -76,9 +91,8 @@ class TestLLMQueryer(unittest.TestCase):
 
     def test_query_llm(self):
         sys_msg = "test system message"
-        human_msg = "test human message"
         include_rag = True
-        results = self.llm_queryer.query_llm(sys_msg, human_msg, include_rag)
+        results = self.llm_queryer.query_llm(sys_msg, test_message, include_rag)
         results = list(results)
         self.assertIsInstance(results, list)
 

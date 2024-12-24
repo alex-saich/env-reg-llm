@@ -2,6 +2,7 @@ import streamlit as st
 from query_llm import LLMQueryer
 from pull_db_data import DBManager
 import os
+import copy
 
 # Set up the Streamlit page
 st.set_page_config(page_title="NYC Environmental Regulations Assistant", page_icon="🌱")
@@ -40,6 +41,18 @@ with tab1:
     # Question input
     user_question = st.text_area("Enter your question:", height=100)
 
+    system_message = st.text_area("System Message", value="""You are a helpful assistant who is aiding an environmental consultant to interpret New York City and New York State environmental regulation 
+            and its application to real estate construction projects. Your responses will be used to help write proposals for environmental site assessments.
+
+            You will be fed a message or set of messages from a conversation with the consultant, as well as several pieces of supporting material that will 
+            be useful to you in answering the consultant's question. The latest user question will be followed by two line breaks and a line marked 
+            "Supporting materials from database:" that will mark the beginning of the supporting materials. Please use this information in your response.
+
+            For supporting materials, you will be provided with a title and page number of the document that the materials are sourced from. When relevant, please reference 
+            these in your response when you leverage information directly from that supporting material. """, 
+            help="These are admin instructions which are passed to the AI model. Update this to change the guidance you give on responses.", 
+            label_visibility="visible" , height=300)
+
     # Submit button
     submit_button = st.button("Get Answer")
 
@@ -50,27 +63,30 @@ with tab1:
     # Submit button
     if submit_button:
         if user_question:
-
-            system_message = """
-            You are a helpful assistant who is aiding an environmental consultant to interpret New York City and New York State environmental regulation
-            and its application to real estate construction projects. Your responses will be used to help write proposals for environmental site assessments.
-
-            You will be fed a message from the consultant, as well as several pieces of supporting material that will be useful to you in answering the 
-            consultant's question. The user's question will begin with "User question:", and will be followed up by two line breaks and a line marked 
-            "Supporting materials:" that will mark the beginning of the supporting materials. Please use this information in your response.
-
-            For supporting materials, you will be provided with a title and page number of the document that the materials are sourced from. Please reference 
-            these in your response when you leverage information directly from that supporting material. 
-            """
-            
+   
             with response_container:
             # Clear the placeholder before starting
                 response_placeholder.empty()
                 full_response = ""
 
+                list_user_q = user_question
+                st.session_state.qa_history.extend(
+                    [{
+                        "role": "user",
+                        "content": [
+                            {
+                            "type": "text",
+                            "text": list_user_q
+                            }
+                        ]
+                    }]
+                )
+
+                message_history = copy.deepcopy(st.session_state.qa_history)
+                
                 llm_queryer = LLMQueryer(project_name=st.session_state.project,connection_type='streamlit')
                 #with st.spinner('Searching and generating response...'):
-                for chunk in llm_queryer.query_llm(sys_msg=system_message, human_msg=user_question):
+                for chunk in llm_queryer.query_llm(sys_msg=system_message, human_msg=message_history,include_rag=True):
                     full_response += chunk
                     response_placeholder.markdown(full_response + "▌")
                 
@@ -78,22 +94,34 @@ with tab1:
                 response_placeholder.markdown(full_response)
 
                 # Add to history after completion
-                st.session_state.qa_history.insert(0, {
-                    "question": user_question,
-                    "answer": full_response
-                })
+                st.session_state.qa_history.extend(
+                    [
+                        {
+                        "role": "assistant",
+                        "content": [
+                            {
+                            "type": "text",
+                            "text": full_response
+                            }
+                        ]
+                        }
+                    ]
+                )
+
         else:
             st.warning("Please enter a question first.")
-
+    
     # Display Q&A history
     if st.session_state.qa_history:
         st.markdown("---")
-        st.subheader("Full Chat History (Most Recent Texts First)")
+        st.subheader("Full Chat History (Oldest Texts First)")
         for qa in st.session_state.qa_history:
-            st.markdown("**Answer:**")
-            st.markdown(qa["answer"])
-            st.markdown(":blue[Question:]")
-            st.write(":blue[" + qa["question"] + "]")
+            if qa["role"] == "assistant":
+                st.markdown("**Answer:**")
+                st.markdown(qa["content"][0]["text"])
+            elif qa["role"] == "user":
+                st.markdown(":blue[Question:]")
+                st.markdown(":blue[" + qa["content"][0]["text"] + "]")
             
 with tab2:
            
