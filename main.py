@@ -41,18 +41,6 @@ with tab1:
     # Question input
     user_question = st.text_area("Enter your question:", height=100)
 
-    system_message = st.text_area("System Message", value="""You are a helpful assistant who is aiding an environmental consultant to interpret New York City and New York State environmental regulation 
-            and its application to real estate construction projects. Your responses will be used to help write proposals for environmental site assessments.
-
-            You will be fed a message or set of messages from a conversation with the consultant, as well as several pieces of supporting material that will 
-            be useful to you in answering the consultant's question. The latest user question will be followed by two line breaks and a line marked 
-            "Supporting materials from database:" that will mark the beginning of the supporting materials. Please use this information in your response.
-
-            For supporting materials, you will be provided with a title and page number of the document that the materials are sourced from. When relevant, please reference 
-            these in your response when you leverage information directly from that supporting material. """, 
-            help="These are admin instructions which are passed to the AI model. Update this to change the guidance you give on responses.", 
-            label_visibility="visible" , height=300)
-
     # Submit button
     submit_button = st.button("Get Answer")
 
@@ -120,6 +108,18 @@ with tab1:
             elif qa["role"] == "user":
                 st.markdown(":blue[Question:]")
                 st.markdown(":blue[" + qa["content"][0]["text"] + "]")
+    
+    system_message = st.text_area("System Message", value="""You are a helpful assistant who is aiding an environmental consultant to interpret New York City and New York State environmental regulation 
+            and its application to real estate construction projects. Your responses will be used to help write proposals for environmental site assessments.
+
+            You will be fed a message or set of messages from a conversation with the consultant, as well as several pieces of supporting material that will 
+            be useful to you in answering the consultant's question. The latest user question will be followed by two line breaks and a line marked 
+            "Supporting materials from database:" that will mark the beginning of the supporting materials. Please use this information in your response.
+
+            For supporting materials, you will be provided with a title and page number of the document that the materials are sourced from. When relevant, please reference 
+            these in your response when you leverage information directly from that supporting material. """, 
+            help="These are admin instructions which are passed to the AI model. Update this to change the guidance you give on responses.", 
+            label_visibility="visible" , height=300)
             
 with tab2:
            
