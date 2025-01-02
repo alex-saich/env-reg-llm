@@ -70,8 +70,8 @@ with tab1:
                 full_response = ""
 
                 list_user_q = user_question
-                st.session_state.qa_history.extend(
-                    [{
+                st.session_state.qa_history.insert(0,
+                    {
                         "role": "user",
                         "content": [
                             {
@@ -79,7 +79,7 @@ with tab1:
                             "text": list_user_q
                             }
                         ]
-                    }]
+                    }
                 )
 
                 message_history = copy.deepcopy(st.session_state.qa_history)
@@ -94,8 +94,7 @@ with tab1:
                 response_placeholder.markdown(full_response)
 
                 # Add to history after completion
-                st.session_state.qa_history.extend(
-                    [
+                st.session_state.qa_history.insert(0,
                         {
                         "role": "assistant",
                         "content": [
@@ -105,7 +104,6 @@ with tab1:
                             }
                         ]
                         }
-                    ]
                 )
 
         else:
@@ -114,7 +112,7 @@ with tab1:
     # Display Q&A history
     if st.session_state.qa_history:
         st.markdown("---")
-        st.subheader("Full Chat History (Oldest Texts First)")
+        st.subheader("Full Chat History (Most Recent Texts First)")
         for qa in st.session_state.qa_history:
             if qa["role"] == "assistant":
                 st.markdown("**Answer:**")
