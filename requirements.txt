@@ -1,5 +1,6 @@
 pysqlite3-binary
 chromadb==0.5.16
+cryptography>=3.1
 langchain==0.3.6
 langchain-chroma==0.1.4
 langchain-community==0.3.4
