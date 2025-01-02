@@ -211,9 +211,8 @@ class LLMQueryer:
             model = OpenAI().chat.completions.create(
                 model="gpt-4",
                 messages=message_list,
-                temperature=0.7,
-                max_tokens=150,
-                top_p=1.0,
+                # temperature=0.7,
+                # top_p=1.0,
                 frequency_penalty=0.0,
                 presence_penalty=0.0,
                 stream=True
