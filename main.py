@@ -108,7 +108,10 @@ with tab1:
             elif qa["role"] == "user":
                 st.markdown(":blue[Question:]")
                 st.markdown(":blue[" + qa["content"][0]["text"] + "]")
+
+    st.markdown("---")
     
+    st.subheader("System Message")
     system_message = st.text_area("System Message", value="""You are a helpful assistant who is aiding an environmental consultant to interpret New York City and New York State environmental regulation 
             and its application to real estate construction projects. Your responses will be used to help write proposals for environmental site assessments.
 
