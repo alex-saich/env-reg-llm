@@ -1,6 +1,7 @@
 import streamlit as st
 from query_llm import LLMQueryer
 from pull_db_data import DBManager
+from store_pdfs_pg import PDFProcessor
 import os
 import copy
 
@@ -177,8 +178,8 @@ with tab2:
                     pdf_paths.append(f"{project_dir}/{uploaded_file.name}")
                 
                 # Process and store PDFs for the selected project
-                from store_pdfs_pg import process_and_store_pdfs
-                result = process_and_store_pdfs(pdf_paths, connection_type='streamlit',project=st.session_state.project)
+                processor = PDFProcessor(connection_type='streamlit',project=st.session_state.project)
+                result = processor.process_and_store_pdfs(pdf_list=pdf_paths)
                 
                 if "successfully" in result:
                     st.success(result)
