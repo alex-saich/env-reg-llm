@@ -153,9 +153,15 @@ with tab2:
     # Display existing PDFs for the selected project
     st.subheader("Current PDF Library")
     pdf_files = DBManager(connection_type='streamlit').pull_project_pdfs(project)
+    print(pdf_files)
     if pdf_files:
+        pdf_list = []  # Initialize a list to hold the rows
         for pdf in pdf_files:
-            st.text(pdf)
+            print(pdf)
+            row = {"PDF Name": pdf[0], "Summary": pdf[1]}
+            pdf_list.append(row)  # Append each row to the list
+        
+        st.table(pdf_list)  # Pass the list of rows to st.table
     else:
         st.text("No PDFs currently in library for this project")
     

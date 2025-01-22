@@ -73,8 +73,8 @@ class DBManager:
     def pull_project_pdfs(self, project_name):
         conn = self.get_db_connection()
         cur = conn.cursor()
-        cur.execute("SELECT document_name FROM documents WHERE project_name = %s", (project_name,))
-        pdfs = [row[0] for row in cur.fetchall()]
+        cur.execute("SELECT document_name, document_summary FROM documents WHERE project_name = %s", (project_name,))
+        pdfs = [(row[0], row[1]) for row in cur.fetchall()]
         conn.close()
         return pdfs
 
